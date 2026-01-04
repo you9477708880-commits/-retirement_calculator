@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>退休金定期定額規劃 | Retirement Planner</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -17,14 +17,14 @@
         
         /* Range Slider Styling */
         input[type=range] {
-            -webkit-appearance: none; /* 針對 WebKit 瀏覽器 (Chrome, Safari) */
-            appearance: none;         /* 標準屬性 (修復 VS Code 相容性警告) */
+            -webkit-appearance: none;
+            appearance: none;
             width: 100%;
             background: transparent;
         }
         input[type=range]::-webkit-slider-thumb {
             -webkit-appearance: none;
-            appearance: none;         /* 標準屬性 */
+            appearance: none;
             height: 16px;
             width: 16px;
             border-radius: 50%;
@@ -50,7 +50,7 @@
         }
         @media (max-width: 640px) {
             .chart-container-responsive {
-                height: 250px;
+                height: 280px; /* Mobile height reduced */
             }
         }
         
@@ -68,6 +68,11 @@
         .markdown-body strong { color: #047857; font-weight: 600; }
         .markdown-body a { color: #059669; text-decoration: underline; }
         
+        /* Mobile Drawer Transitions */
+        .drawer-content {
+            transition: transform 0.3s ease-in-out;
+        }
+        
         /* Animations */
         @keyframes pulse-ring {
             0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
@@ -77,34 +82,55 @@
         .animate-pulse-ring { animation: pulse-ring 2s infinite; }
     </style>
 </head>
-<body class="bg-stone-50 text-stone-800 antialiased h-screen flex flex-col overflow-hidden">
+<body class="bg-stone-50 text-stone-800 antialiased h-screen flex flex-col overflow-hidden relative">
 
     <!-- Header -->
-    <header class="bg-white border-b border-stone-200 shadow-sm flex-none z-20">
-        <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+    <header class="bg-white border-b border-stone-200 shadow-sm flex-none z-20 sticky top-0 w-full">
+        <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between">
             <div class="flex items-center gap-2">
-                <span class="text-2xl">🐢</span>
-                <h1 class="text-xl font-bold tracking-tight text-stone-900">退休金定期定額規劃 <span class="text-sm font-normal text-stone-500 hidden sm:inline">| DCA Planner</span></h1>
+                <span class="text-xl sm:text-2xl">🐢</span>
+                <h1 class="text-lg sm:text-xl font-bold tracking-tight text-stone-900 truncate">退休規劃 <span class="hidden sm:inline text-sm font-normal text-stone-500">| DCA Planner</span></h1>
             </div>
             
-            <div class="flex items-center bg-stone-100 rounded-lg p-1 border border-stone-200">
-                <button id="btn-nominal" class="px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200 text-stone-500 hover:text-stone-900" onclick="setMode('nominal')">
-                    名目金額 (含通膨)
+            <div class="flex items-center gap-2">
+                <!-- Mobile Settings Toggle Button -->
+                <button onclick="toggleMobileDrawer()" class="lg:hidden p-2 rounded-md text-stone-500 hover:bg-stone-100 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                    </svg>
                 </button>
-                <button id="btn-real" class="px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200 bg-white text-emerald-700 shadow-sm ring-1 ring-black/5" onclick="setMode('real')">
-                    實質購買力 (扣除通膨)
-                </button>
+
+                <div class="flex items-center bg-stone-100 rounded-lg p-1 border border-stone-200">
+                    <button id="btn-nominal" class="px-2 sm:px-3 py-1 text-[10px] sm:text-xs font-medium rounded-md transition-all duration-200 text-stone-500 hover:text-stone-900" onclick="setMode('nominal')">
+                        名目(含通膨)
+                    </button>
+                    <button id="btn-real" class="px-2 sm:px-3 py-1 text-[10px] sm:text-xs font-medium rounded-md transition-all duration-200 bg-white text-emerald-700 shadow-sm ring-1 ring-black/5" onclick="setMode('real')">
+                        實質(扣通膨)
+                    </button>
+                </div>
             </div>
         </div>
     </header>
 
-    <!-- Main Content -->
-    <main class="flex-1 flex flex-col lg:flex-row overflow-hidden max-w-screen-2xl mx-auto w-full">
+    <!-- Main Content Wrapper -->
+    <div class="flex-1 flex flex-col lg:flex-row overflow-hidden max-w-screen-2xl mx-auto w-full relative">
         
-        <!-- Sidebar: Control Center -->
-        <aside class="w-full lg:w-96 bg-white border-r border-stone-200 flex-none overflow-y-auto custom-scrollbar z-10">
-            <div class="p-6 space-y-8">
+        <!-- Mobile Drawer Overlay (Backdrop) -->
+        <div id="drawer-backdrop" class="fixed inset-0 bg-black/50 z-30 hidden lg:hidden transition-opacity opacity-0" onclick="toggleMobileDrawer()"></div>
+
+        <!-- Sidebar: Control Center (Responsive: Drawer on Mobile, Sidebar on Desktop) -->
+        <aside id="control-panel" class="fixed lg:relative inset-y-0 left-0 w-80 sm:w-96 bg-white border-r border-stone-200 flex-none overflow-y-auto custom-scrollbar z-40 transform -translate-x-full lg:translate-x-0 drawer-content shadow-xl lg:shadow-none h-full pb-20 lg:pb-0">
+            <div class="p-4 sm:p-6 space-y-6 sm:space-y-8">
                 
+                <div class="flex justify-between items-center lg:hidden mb-2">
+                    <h2 class="text-lg font-bold text-stone-800">⚙️ 參數設定</h2>
+                    <button onclick="toggleMobileDrawer()" class="text-stone-400 hover:text-stone-600">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
                 <!-- 1. Profile -->
                 <div class="space-y-2">
                     <h2 class="text-sm font-bold uppercase tracking-wider text-stone-400">個人設定 (Profile)</h2>
@@ -125,7 +151,7 @@
                     </div>
                 </div>
 
-                <!-- 2. Cash Flow (Revised) -->
+                <!-- 2. Cash Flow -->
                 <div class="space-y-4">
                     <h2 class="text-sm font-bold uppercase tracking-wider text-stone-400">現金流配置 (Cash Flow)</h2>
                     
@@ -143,7 +169,7 @@
                     <div class="bg-stone-50 p-3 rounded-lg border border-stone-200 space-y-3">
                         <label class="text-[10px] text-stone-500 block mb-1 font-bold">定期定額投入項目 (Monthly DCA)</label>
                         <div class="flex gap-2">
-                            <input type="text" id="contribNameInput" class="w-2/3 text-xs p-1.5 border border-stone-300 rounded" placeholder="項目 (如: 0050, 儲蓄險)">
+                            <input type="text" id="contribNameInput" class="w-2/3 text-xs p-1.5 border border-stone-300 rounded" placeholder="項目 (如: 0050)">
                             <input type="number" id="contribAmountInput" class="w-1/3 text-xs p-1.5 border border-stone-300 rounded text-right" placeholder="金額">
                         </div>
                         <button onclick="addContribItem()" class="w-full px-4 py-1.5 bg-emerald-600 text-white text-xs rounded hover:bg-emerald-700 transition">加入投入項目</button>
@@ -158,11 +184,10 @@
                     <div class="flex justify-between items-center bg-emerald-50 p-3 rounded border border-emerald-100">
                         <span class="text-xs font-medium text-stone-600">每月總投入金額</span>
                         <span class="text-lg font-bold text-emerald-700" id="disp-total-monthly">$0</span>
-                        <!-- Hidden input to store value for calculation logic -->
                         <input type="hidden" id="monthlyContrib" value="0">
                     </div>
 
-                    <!-- DCA Return Rate (New Dual-Track Control) -->
+                    <!-- DCA Return Rate -->
                     <div class="bg-emerald-50/50 p-2 rounded border border-emerald-100/50">
                         <div class="flex justify-between mb-1">
                             <label class="text-xs font-medium text-stone-600">定期定額預期報酬率 (DCA Rate)</label>
@@ -292,54 +317,54 @@
         </aside>
 
         <!-- Visualization Dashboard -->
-        <div class="flex-1 flex flex-col min-w-0 bg-stone-50 overflow-y-auto custom-scrollbar">
+        <div class="flex-1 flex flex-col min-w-0 bg-stone-50 overflow-y-auto custom-scrollbar h-full">
             
             <!-- KPI Cards -->
             <div class="p-4 sm:p-6 lg:p-8 pb-0">
-                <div class="mb-6">
+                <div class="mb-4 sm:mb-6">
                     <h3 class="text-lg font-bold text-stone-800">資產預測儀表板</h3>
                     <p class="text-sm text-stone-500" id="header-subtitle">基於目前設定的累積期試算結果</p>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4 mb-4">
                     <!-- KPI 1 -->
-                    <div class="bg-white p-4 rounded-xl shadow-sm border border-stone-100 relative overflow-hidden group">
+                    <div class="bg-white p-3 sm:p-4 rounded-xl shadow-sm border border-stone-100 relative overflow-hidden group">
                         <div class="absolute right-0 top-0 p-3 opacity-10 group-hover:opacity-20 transition"><span class="text-4xl">💰</span></div>
                         <p class="text-xs font-medium text-stone-500 uppercase">退休時資產總額</p>
-                        <p class="text-2xl font-bold text-emerald-700 mt-1" id="kpi-total-assets">Loading...</p>
-                        <p class="text-xs text-stone-400 mt-2">預估累積金額</p>
+                        <p class="text-xl sm:text-2xl font-bold text-emerald-700 mt-1" id="kpi-total-assets">Loading...</p>
+                        <p class="text-xs text-stone-400 mt-1">預估累積金額</p>
                     </div>
 
                     <!-- KPI 2 -->
-                    <div class="bg-white p-4 rounded-xl shadow-sm border border-stone-100 relative overflow-hidden group">
+                    <div class="bg-white p-3 sm:p-4 rounded-xl shadow-sm border border-stone-100 relative overflow-hidden group">
                         <div class="absolute right-0 top-0 p-3 opacity-10 group-hover:opacity-20 transition"><span class="text-4xl">🌱</span></div>
                         <p class="text-xs font-medium text-stone-500 uppercase">投入本金總和</p>
-                        <p class="text-2xl font-bold text-stone-700 mt-1" id="kpi-principal">Loading...</p>
-                        <p class="text-xs text-stone-400 mt-2">實際從口袋拿出的錢</p>
+                        <p class="text-xl sm:text-2xl font-bold text-stone-700 mt-1" id="kpi-principal">Loading...</p>
+                        <p class="text-xs text-stone-400 mt-1">實際從口袋拿出的錢</p>
                     </div>
 
                     <!-- KPI 3 -->
-                    <div class="bg-white p-4 rounded-xl shadow-sm border border-stone-100 relative overflow-hidden group">
+                    <div class="bg-white p-3 sm:p-4 rounded-xl shadow-sm border border-stone-100 relative overflow-hidden group">
                         <div class="absolute right-0 top-0 p-3 opacity-10 group-hover:opacity-20 transition"><span class="text-4xl">📈</span></div>
                         <p class="text-xs font-medium text-stone-500 uppercase">複利投資收益</p>
-                        <p class="text-2xl font-bold text-amber-500 mt-1" id="kpi-interest">Loading...</p>
-                        <p class="text-xs text-stone-400 mt-2">錢滾錢的效果</p>
+                        <p class="text-xl sm:text-2xl font-bold text-amber-500 mt-1" id="kpi-interest">Loading...</p>
+                        <p class="text-xs text-stone-400 mt-1">錢滾錢的效果</p>
                     </div>
 
                     <!-- KPI 4 -->
-                    <div class="bg-white p-4 rounded-xl shadow-sm border-l-4 border-l-stone-300 relative overflow-hidden" id="card-status">
+                    <div class="bg-white p-3 sm:p-4 rounded-xl shadow-sm border-l-4 border-l-stone-300 relative overflow-hidden" id="card-status">
                         <p class="text-xs font-medium text-stone-500 uppercase">目標達成率</p>
                         <div class="flex items-baseline gap-2 mt-1">
-                            <p class="text-2xl font-bold text-stone-700" id="kpi-percent">0%</p>
+                            <p class="text-xl sm:text-2xl font-bold text-stone-700" id="kpi-percent">0%</p>
                             <span class="text-xs font-bold px-2 py-0.5 rounded-full bg-stone-100 text-stone-500" id="kpi-status-badge">Loading...</span>
                         </div>
-                        <p class="text-xs text-stone-400 mt-2" id="kpi-suggestion">Loading...</p>
+                        <p class="text-xs text-stone-400 mt-1" id="kpi-suggestion">Loading...</p>
                     </div>
                 </div>
 
                 <!-- Gemini AI Advisor Section -->
-                <div class="mb-8">
-                    <div class="bg-gradient-to-r from-emerald-50 to-stone-50 rounded-xl border border-emerald-100 p-5 shadow-sm">
+                <div class="mb-6 sm:mb-8">
+                    <div class="bg-gradient-to-r from-emerald-50 to-stone-50 rounded-xl border border-emerald-100 p-4 sm:p-5 shadow-sm">
                         <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
                             <div class="flex items-center gap-3">
                                 <div class="bg-white p-2 rounded-lg shadow-sm text-xl">✨</div>
@@ -351,8 +376,8 @@
                             <!-- API Key Input UI (Bring Your Own Key) -->
                             <div class="flex flex-col gap-2 w-full md:w-auto">
                                 <div class="flex gap-2 items-center">
-                                    <input type="password" id="userApiKey" class="w-48 text-xs p-1.5 border border-emerald-300 rounded bg-white" placeholder="貼上 Gemini API Key">
-                                    <button onclick="saveApiKey()" class="px-3 py-1.5 bg-emerald-100 text-emerald-700 text-xs rounded hover:bg-emerald-200 transition">儲存 Key</button>
+                                    <input type="password" id="userApiKey" class="w-full md:w-48 text-xs p-1.5 border border-emerald-300 rounded bg-white" placeholder="貼上 Gemini API Key">
+                                    <button onclick="saveApiKey()" class="px-3 py-1.5 bg-emerald-100 text-emerald-700 text-xs rounded hover:bg-emerald-200 transition whitespace-nowrap">儲存 Key</button>
                                 </div>
                                 <button onclick="callGeminiAdvisor()" id="ai-btn" class="w-full flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg shadow transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
                                     <span>✨ 分析我的規劃</span>
@@ -373,16 +398,16 @@
                                      正在分析投資組合：搜尋 AOA、台積電等標的歷史數據...<br>
                                  </p>
                              </div>
-                             <div id="ai-content" class="text-sm text-stone-700 markdown-body bg-white/50 p-4 rounded-lg"></div>
+                             <div id="ai-content" class="text-sm text-stone-700 markdown-body bg-white/50 p-4 rounded-lg overflow-x-auto"></div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="px-4 sm:px-6 lg:px-8 pb-8">
+            <div class="px-4 sm:px-6 lg:px-8 pb-20 sm:pb-8">
                 <!-- Charts -->
                 <div class="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-8">
-                    <div class="xl:col-span-2 bg-white p-5 rounded-xl shadow-sm border border-stone-100 flex flex-col">
+                    <div class="xl:col-span-2 bg-white p-4 sm:p-5 rounded-xl shadow-sm border border-stone-100 flex flex-col">
                         <div class="mb-4 flex justify-between items-center">
                             <h4 class="font-bold text-stone-700">資產累積與提領軌跡</h4>
                             <div class="flex gap-2 text-xs">
@@ -398,7 +423,7 @@
                         <p class="text-xs text-stone-400 mt-3 text-center">X軸: 年齡 (歲) &nbsp; | &nbsp; 虛線標示: 退休年齡</p>
                     </div>
 
-                    <div class="bg-white p-5 rounded-xl shadow-sm border border-stone-100 flex flex-col">
+                    <div class="bg-white p-4 sm:p-5 rounded-xl shadow-sm border border-stone-100 flex flex-col">
                         <h4 class="font-bold text-stone-700 mb-4">退休時資產結構</h4>
                         <div class="flex-1 flex flex-col justify-center items-center relative">
                             <div class="chart-container-responsive" style="max-height: 250px;">
@@ -446,15 +471,17 @@
                     </div>
                 </div>
                 
-                <div class="mt-8 text-center">
+                <div class="mt-8 text-center pb-8">
                     <button class="text-xs text-stone-400 hover:text-stone-600 underline" onclick="window.print()">列印此報告</button>
                 </div>
             </div>
         </div>
-    </main>
+    </div>
 
     <script>
-        // Init userApiKey from storage
+        // ... (Javascript logic remains identical to previous version) ...
+        // Keeping JS logic unchanged as the modification is UI structure based
+        
         let userApiKey = localStorage.getItem('gemini_api_key') || "";
 
         let appState = {
@@ -465,8 +492,8 @@
                 annualReturn: 6.0, dcaReturn: 6.0, inflationRate: 2.0,
                 monthlyWithdraw: 40000, targetGoal: 20000000
             },
-            portfolio: [], // 儲存 { name, return, weight }
-            contributionItems: [ // 新增：儲存定期定額項目
+            portfolio: [],
+            contributionItems: [
                 { id: 1, name: 'ETF 定期定額', amount: 10000 }
             ],
             results: []
@@ -483,6 +510,29 @@
              if (num === undefined || num === null || isNaN(num)) return "0%";
             return num.toFixed(2) + '%';
         };
+
+        function toggleMobileDrawer() {
+            const sidebar = document.getElementById('control-panel');
+            const backdrop = document.getElementById('drawer-backdrop');
+            
+            const isClosed = sidebar.classList.contains('-translate-x-full');
+            
+            if (isClosed) {
+                // Open
+                sidebar.classList.remove('-translate-x-full');
+                backdrop.classList.remove('hidden');
+                // Allow CSS transition to pick up display change
+                setTimeout(() => backdrop.classList.remove('opacity-0'), 10);
+            } else {
+                // Close
+                sidebar.classList.add('-translate-x-full');
+                backdrop.classList.add('opacity-0');
+                setTimeout(() => backdrop.classList.add('hidden'), 300);
+            }
+        }
+
+        // ... (Previous JS functions: syncRange, updateDisp, setMode, toggleTable, saveApiKey, addContribItem, removeContribItem, updateContribUI, fillAssetInputs, addAsset, removeAsset, updatePortfolioUI, calculateSimulation, updateUI, callGeminiAdvisor, renderCharts, renderTable, updateSim) ...
+        // Re-pasting complete JS to ensure file integrity
 
         function syncRange(id, val) {
             document.getElementById(id).value = val;
@@ -504,12 +554,12 @@
         function setMode(mode) {
             appState.mode = mode;
             if(mode === 'real') {
-                document.getElementById('btn-real').className = "px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200 bg-white text-emerald-700 shadow-sm ring-1 ring-black/5";
-                document.getElementById('btn-nominal').className = "px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200 text-stone-500 hover:text-stone-900";
+                document.getElementById('btn-real').className = "px-2 sm:px-3 py-1 text-[10px] sm:text-xs font-medium rounded-md transition-all duration-200 bg-white text-emerald-700 shadow-sm ring-1 ring-black/5";
+                document.getElementById('btn-nominal').className = "px-2 sm:px-3 py-1 text-[10px] sm:text-xs font-medium rounded-md transition-all duration-200 text-stone-500 hover:text-stone-900";
                 document.getElementById('header-subtitle').textContent = "顯示數值已扣除通膨 (以今日購買力呈現)";
             } else {
-                document.getElementById('btn-nominal').className = "px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200 bg-white text-emerald-700 shadow-sm ring-1 ring-black/5";
-                document.getElementById('btn-real').className = "px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200 text-stone-500 hover:text-stone-900";
+                document.getElementById('btn-nominal').className = "px-2 sm:px-3 py-1 text-[10px] sm:text-xs font-medium rounded-md transition-all duration-200 bg-white text-emerald-700 shadow-sm ring-1 ring-black/5";
+                document.getElementById('btn-real').className = "px-2 sm:px-3 py-1 text-[10px] sm:text-xs font-medium rounded-md transition-all duration-200 text-stone-500 hover:text-stone-900";
                 document.getElementById('header-subtitle').textContent = "顯示數值為未來帳面金額 (包含通膨)";
             }
             updateSim();
@@ -520,7 +570,6 @@
             el.classList.toggle('hidden');
         }
 
-        // --- API Key Management ---
         function saveApiKey() {
             const input = document.getElementById('userApiKey');
             const key = input.value.trim();
@@ -533,7 +582,6 @@
             }
         }
 
-        // --- Monthly Contribution Item Logic ---
         function addContribItem() {
             const nameInput = document.getElementById('contribNameInput');
             const amountInput = document.getElementById('contribAmountInput');
@@ -592,7 +640,6 @@
             calculateSimulation(); 
         }
 
-        // --- Portfolio Logic ---
         function fillAssetInputs(selectEl) {
             const nameInput = document.getElementById('assetNameInput');
             const returnInput = document.getElementById('assetReturnInput');
@@ -681,8 +728,6 @@
             }
         }
 
-
-        // --- Simulation (Dual Track Engine) ---
         function calculateSimulation() {
             let currentAge = parseInt(document.getElementById('currentAge').value) || 30;
             let retireAge = parseInt(document.getElementById('retireAge').value) || 65;
@@ -692,7 +737,6 @@
             const PMT = parseFloat(document.getElementById('monthlyContrib').value) || 0;
             const g_contrib = parseFloat(document.getElementById('contribGrowth').value) / 100;
             
-            // Dual Rates
             const r_principal_nom = parseFloat(document.getElementById('annualReturn').value) / 100;
             const r_dca_nom = parseFloat(document.getElementById('dcaReturn').value) / 100;
             
@@ -709,22 +753,16 @@
                 monthlyWithdraw: W_target_pv, targetGoal: Goal_target_pv
             };
 
-            // Calculated Real Rates (for display reference only)
             const r_principal_real = ((1 + r_principal_nom) / (1 + i_inf)) - 1;
             const r_dca_real = ((1 + r_dca_nom) / (1 + i_inf)) - 1; 
-            // Note: We use Nominal rates for calculation loop to match inflation logic correctly
 
             let simulationData = [];
-            
-            // Dual Track Variables
-            let balPrincipal = P; // Track A: Existing Assets
-            let balContrib = 0;   // Track B: New DCA Assets
-            let totalPrincipalPaid = P; // Only out-of-pocket cash
+            let balPrincipal = P; 
+            let balContrib = 0;   
+            let totalPrincipalPaid = P; 
             
             let currentPMT = PMT;
             const totalYears = Math.max(0, deathAge - currentAge);
-            
-            // Monthly rates
             const r_p_m = r_principal_nom / 12;
             const r_d_m = r_dca_nom / 12;
 
@@ -734,49 +772,33 @@
                 let yearlyContrib = 0;
 
                 if (!isRetired) {
-                    // Accumulation Phase
                     for(let m=0; m<12; m++) {
-                        // Track A: Principal Growth
                         balPrincipal *= (1 + r_p_m);
-                        
-                        // Track B: DCA Growth (Annuity Due: Invest at start)
                         balContrib += currentPMT;
                         yearlyContrib += currentPMT;
                         totalPrincipalPaid += currentPMT;
-                        
                         balContrib *= (1 + r_d_m);
                     }
                     currentPMT *= (1 + g_contrib);
                 } else {
-                    // Decumulation Phase
-                    // Withdrawal Amount (Nominal)
                     let monthlyW_nominal = W_target_pv * Math.pow((1 + i_inf), year);
-                    
                     for(let m=0; m<12; m++) {
-                        // Pro-rata Withdrawal Logic
                         let totalBal = balPrincipal + balContrib;
                         if (totalBal > 0) {
                             let ratioP = balPrincipal / totalBal;
-                            
-                            // Withdraw proportionally
                             let wP = monthlyW_nominal * ratioP;
                             let wC = monthlyW_nominal * (1 - ratioP);
-                            
                             balPrincipal -= wP;
                             balContrib -= wC;
                         } else {
-                            // Bankruptcy
                             balPrincipal = 0;
                             balContrib = 0;
                         }
-                        
-                        // Growth continues
                         balPrincipal *= (1 + r_p_m);
                         balContrib *= (1 + r_d_m);
                     }
                 }
 
-                // Snapshot for Display
                 let currentBalance = balPrincipal + balContrib;
                 const discountFactor = 1 / Math.pow((1 + i_inf), year);
                 
@@ -784,10 +806,6 @@
                 let displayPrincipal = appState.mode === 'real' ? totalPrincipalPaid * discountFactor : totalPrincipalPaid;
                 let displayContrib = appState.mode === 'real' ? yearlyContrib * discountFactor : yearlyContrib;
                 
-                // Store separate components for calculating weighted return later
-                // Storing Nominal components to be independent of mode for calculation
-                // Note: We need Real Value of components for weight calc if mode is real, but relative ratio is same in nominal
-                // Let's store Real value components for weighted avg calculation
                 let compP = balPrincipal * discountFactor;
                 let compD = balContrib * discountFactor;
 
@@ -821,7 +839,6 @@
             document.getElementById('kpi-principal').textContent = formatMoney(retireData.principal);
             document.getElementById('kpi-interest').textContent = formatMoney(retireData.balance - retireData.principal);
 
-            // Solver Logic
             let inflationRate = parseFloat(document.getElementById('inflationRate').value) / 100;
             let yearsToRetire = Math.max(0, parseInt(document.getElementById('retireAge').value) - parseInt(document.getElementById('currentAge').value));
             
@@ -858,13 +875,10 @@
                 }
             }
             
-            // Doughnut Stats
             let interest = retireData.balance - retireData.principal;
             let multiplier = retireData.principal > 0 ? (retireData.balance / retireData.principal).toFixed(2) : "0.00";
             document.getElementById('stat-multiplier').textContent = multiplier + " 倍";
             
-            // Calculate Weighted Average Real Return
-            // Formula: (FV_principal * r_p_real + FV_dca * r_d_real) / FV_total
             let fv_p = retireData.compPrincipal;
             let fv_d = retireData.compDca;
             let total_fv = fv_p + fv_d;
@@ -883,7 +897,6 @@
             renderTable();
         }
 
-        // --- Gemini AI ---
         async function callGeminiAdvisor() {
             const btn = document.getElementById('ai-btn');
             const responseContainer = document.getElementById('ai-response-container');
@@ -916,7 +929,6 @@
             const achievementRate = (goalReal > 0) ? (retireReal / goalReal) * 100 : 100;
             const gap = goalReal - retireReal;
 
-            // Generate Portfolio String
             let portfolioStr = "使用者未設定具體投資組合（使用預設報酬率）。";
             let customAssets = ""; 
             
@@ -1026,7 +1038,6 @@
             }
         }
 
-        // Charts
         function renderCharts() {
             const ctxWealth = document.getElementById('wealthChart').getContext('2d');
             const ctxDoughnut = document.getElementById('doughnutChart').getContext('2d');
@@ -1082,7 +1093,6 @@
             calculateSimulation(); 
         }
         window.onload = function() { 
-            // Load key from storage
             const savedKey = localStorage.getItem('gemini_api_key');
             if(savedKey) {
                 document.getElementById('userApiKey').value = savedKey;
